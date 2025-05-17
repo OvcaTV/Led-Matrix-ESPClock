@@ -11,15 +11,13 @@
 
 ESP8266WebServer server(80);
 
-const char* SSID     = "11.6. 1989 se nic nestalo";
-const char* PASSWORD = "11111111";
+const char* SSID     = "nazev site";
+const char* PASSWORD = "heslo site";
 
-//const char* SSID     = "Moravkovi";
-//const char* PASSWORD = "sit4morav";
 
 WiFiUDP     ntpUDP;
-NTPClient   timeClient(ntpUDP, "pool.ntp.org", 0, 1000); 
-int tzOffsetHours = 2;  // default UTC+2 (CEST)
+NTPClient   timeClient(ntpUDP, "pool.ntp.org", 0, 1000); // odtud beru cas 
+int tzOffsetHours = 2;  // prednastavene casove pasmo na Stredoevropsky letni cas ()
 
 #define P_LAT 16 //nodemcu pin D0
 #define P_A 5    //nodemcu pin D1
@@ -45,7 +43,6 @@ int alarmMinute = 0;
 #define MAX_MSG_LEN 32
 char alarmMessage[MAX_MSG_LEN+1] = "Budicek";
 
-// ———— FORWARD DECLS ————
 void display_updater();
 void toggleBlink();
 void showTime();
@@ -99,7 +96,7 @@ void showTime() {
   display.showBuffer();
 }
 
-// ———— ALARM ————
+
 
 void checkAlarm() {
   static int lastSec=-1;
@@ -114,8 +111,9 @@ void checkAlarm() {
   }
 }
 
+// nastaveni budiku
 void triggerAlarm() {
-  Serial.println("🚨 ALARM!");
+  Serial.println("Budicek");
 
   // pause blink only
   blink_ticker.detach();
@@ -139,21 +137,21 @@ void triggerAlarm() {
   blink_ticker.attach_ms(500, toggleBlink);
 }
 
-// ———— HTTP HANDLERS ————
 
+//webova stranka
 void handleRoot() {
   String html = "<!DOCTYPE html><html><head><meta charset='utf-8'><title>ESP Clock</title></head><body>"
     "<h1>ESP8266 Clock</h1>"
     "<p>Time: <strong>" + timeClient.getFormattedTime() + 
     "</strong> (UTC" + (tzOffsetHours>=0?"+":"") + String(tzOffsetHours) + ")</p>"
 
-    // timezone
+    // casove pasmo
     "<form action='/set_timezone' method='POST'>"
       "UTC Offset: <input type='number' name='tz' value='" + String(tzOffsetHours) +
       "' step='1' min='-12' max='14'>"
       "<input type='submit' value='Set TZ'></form><br>"
 
-    // alarm time
+    // budik
     "<form action='/set_alarm' method='POST'>"
       "Alarm HH:MM: <input type='time' name='alarm' value='" +
       String(alarmHour<10?"0":"")+alarmHour+":"+
@@ -166,7 +164,7 @@ void handleRoot() {
     "</strong> at " + String(alarmHour<10?"0":"")+alarmHour+":"+
     String(alarmMinute<10?"0":"")+alarmMinute + "</p>"
 
-    // alarm message
+    // zprava budiku
     "<form action='/set_message' method='POST'>"
       "Message: <input type='text' name='msg' maxlength='" + String(MAX_MSG_LEN) +
       "' value='" + String(alarmMessage) + "'>"
@@ -220,22 +218,21 @@ void handleSetMessage() {
 }
 
 void displayIP() {
-  // 1) Grab your IP as a C-string
   char buf[24];
   WiFi.localIP().toString().toCharArray(buf, sizeof(buf));
 
-  // use default font, 5×7 px
-  display.setFont();              // reset to default
-  display.setTextSize(1);         // no scaling
+  // zmensi velikost fontu aby byla i delsi ip adresa videt
+  display.setFont();              
+  display.setTextSize(1);         
   display.setTextColor(display.color565(0,255,0));
 
-  // measure its real width
+  
   int16_t x1, y1;
   uint16_t w, h;
   int16_t y0 = (32 - 7)/2 + 7;     // 7 px font-height
   display.getTextBounds(buf, 0, y0, &x1, &y1, &w, &h);
 
-  // scroll from x=64 → x=–w
+  
   for (int x = 64; x >= -int(w); --x) {
     display.clearDisplay();
     display.setCursor(x, y0);
@@ -250,7 +247,7 @@ void setup() {
   delay(100);
   Serial.println("\nBooting…");
 
-  // Matrix init (start dark)
+  // init displeje, jas se nastavi na 0
   display.begin(16);
   display.setFastUpdate(true);
   display.setBrightness(0);
@@ -258,7 +255,7 @@ void setup() {
   display.showBuffer();
   display_ticker.attach_ms(25, display_updater);
 
-  // Wi-Fi
+  // Prihlaseni k internetu
   WiFi.mode(WIFI_STA);
   WiFi.begin(SSID, PASSWORD);
   Serial.print("Connecting Wi-Fi");
@@ -272,7 +269,7 @@ void setup() {
   display.setBrightness(80);
   delay(500);
 
-  displayIP();               // <<< scrolls the IP once on your matrix
+  displayIP();       
   delay(500);
   
 
@@ -288,7 +285,6 @@ void setup() {
   // Blink colon
   blink_ticker.attach_ms(500, toggleBlink);
 
-  // Web routes
   server.on("/",        HTTP_GET,  handleRoot);
   server.on("/set_timezone", HTTP_POST, handleSetTZ);
   server.on("/set_alarm",    HTTP_POST, handleSetAlarm);
