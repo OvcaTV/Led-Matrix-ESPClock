@@ -1,13 +1,12 @@
 #include <ESP8266WiFi.h>
 #include <WiFiUdp.h>
-#include <NTPClient.h>
+#include <ESP8266WebServer.h>
 
-#include <PxMatrix.h>
-#include <Ticker.h>
 #include <Fonts/FreeMono9pt7b.h>
 
-
-#include <ESP8266WebServer.h>
+#include <NTPClient.h>
+#include <PxMatrix.h>
+#include <Ticker.h>
 
 ESP8266WebServer server(80);
 
@@ -19,13 +18,13 @@ WiFiUDP     ntpUDP;
 NTPClient   timeClient(ntpUDP, "pool.ntp.org", 0, 1000); // odtud beru cas 
 int tzOffsetHours = 2;  // prednastavene casove pasmo na Stredoevropsky letni cas ()
 
-#define P_LAT 16 //nodemcu pin D0
-#define P_A 5    //nodemcu pin D1
-#define P_B 4    //nodemcu pin D2
-#define P_C 15   //nodemcu pin D8
-#define P_OE 2   //nodemcu pin D4
-#define P_D 12   //nodemcu pin D6
-#define P_E 0    //nodemcu ground
+#define P_LAT 16 //pin D0
+#define P_A 5    //pin D1
+#define P_B 4    //pin D2
+#define P_C 15   //pin D8
+#define P_OE 2   //pin D4
+#define P_D 12   //pin D6
+#define P_E 0    //ground
 
 const uint8_t DIGIT_SP = 8;   // mezera po cislech
 const uint8_t COLON_SP = 6;   // mezera po dvojtecce
@@ -114,11 +113,8 @@ void checkAlarm() {
 // nastaveni budiku
 void triggerAlarm() {
   Serial.println("Budicek");
-
-  // pause blink only
   blink_ticker.detach();
 
-  // scroll message
   int charW = 6;
   int textW = strlen(alarmMessage)*charW;
   int y = (32 - FONT_H)/2 + FONT_H;
@@ -131,8 +127,6 @@ void triggerAlarm() {
     display.showBuffer();
     delay(50);
   }
-
-  // resume
   showTime();
   blink_ticker.attach_ms(500, toggleBlink);
 }
@@ -190,9 +184,9 @@ void handleSetTZ() {
 
 void handleSetAlarm() {
   if (server.hasArg("alarm")) {
-    String t = server.arg("alarm");  // format "HH:MM"
+    String t = server.arg("alarm");  // format hh:mm
     alarmHour   = t.substring(0, 2).toInt();
-    alarmMinute = t.substring(3)   .toInt();  // take from index 3 to end
+    alarmMinute = t.substring(3)   .toInt();
     Serial.printf("Alarm -> %02d:%02d\n", alarmHour, alarmMinute);
   }
   server.sendHeader("Location", "/", true);
